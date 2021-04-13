@@ -1,0 +1,587 @@
+---
+title: "trialNBA"
+author: "Rahul"
+date: "4/5/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r}
+library(nbastatR)
+library(future)
+library(dplyr)
+library(rvest)
+library(robotstxt)
+library(htmltools)
+library(xml2)
+library(mgsub)
+library(tidytext)
+library(wordcloud)
+library(tidyr)
+library(vcd)
+library(grid)
+library(tidyverse)
+library(ggrepel)
+plan(multiprocess)
+
+```
+
+```{r}
+bref_injuries()
+```
+```{r}
+playerData<-dictionary_bref_players()
+playerData
+
+```
+```{r}
+
+injuryData2021 <- bref_injuries()
+injuryPlayerIDS <- c(injuryData2021$slugPlayerBREF)
+injuredPlayerData<- filter(playerData,slugPlayerBREF %in% injuryPlayerIDS)
+injuryDataPerPlayer2021 <- merge(injuryData2021,playerData,by.x='namePlayer',by.y='namePlayerBREF')
+urlVector <- c(injuryDataPerPlayer2021$urlPlayerBioBREF)
+injuredPlayerUrls<- injuryDataPerPlayer2021['urlPlayerBioBREF']
+```
+
+```{r}
+fn<-function (url){
+  page <- tryCatch({ 
+        read_html(url)
+    },
+    error = function(cond) {
+      return (c(NA,NA))
+    },
+    warning=function(cond) {
+        message(paste("URL caused a warning:", url))
+        message("Here's the original warning message:")
+        message(cond)
+        # Choose a return value in case of warning
+        return(c(NA,NA))
+    },
+    finally={
+    })
+  
+  if(is.na(page))
+   { return (c(NA,NA))}
+  else
+  {
+  index <- 4
+  count <- 1
+  stringData <- page %>%
+              html_node('div#meta')%>%
+              html_nodes('p')
+  for(i in stringData)
+  {
+    str<- i %>%
+      html_text()
+    if(grepl('Position',str,fixed=TRUE)==TRUE)
+      {index <- count}
+    count<-count+1
+  }
+
+  stringData <- stringData [index]
+  personalData<- stringData %>%
+            html_text()
+  personalData <- mgsub(personalData,c('\n',' '),c('',''))
+  personalData<- strsplit(personalData,'▪')
+  shootingPosition <-strsplit(personalData[[1]][1],':')[[1]][2]
+  #shootingPosition<-(strsplit(shootingPosition,c('and',','))[[1]])
+  shootingHand <- strsplit(personalData[[1]][2],':')[[1]][2]
+  positionalData <- c(shootingPosition,shootingHand)
+  #print(c(c(strsplit(shootingPosition,c('and',','))[[1]])[1],shootingHand))
+  return(positionalData)
+  }
+}
+
+fn(urlVector[[1]][1])
+```
+
+
+
+
+
+```{r}
+val<-lapply(injuredPlayerUrls[[1]], fn)
+```
+
+
+```{r}
+df<-data.frame(matrix(unlist(val), nrow=length(val), byrow=TRUE))
+colnames(df)<-c('position1','hand')
+```
+
+
+```{r}
+
+finalDfPlayers2021<-cbind(injuryDataPerPlayer2021,df)
+finalDfPlayers2021 <- select(finalDfPlayers2021, -slugPlayerBREF.x)
+finalDfPlayers2021 <- separate_rows(finalDfPlayers2021,position1,sep="and")
+finalDfPlayers2021 <- separate_rows(finalDfPlayers2021,position1,sep=",")
+finalDfPlayers2021<-finalDfPlayers2021[!finalDfPlayers2021$position1 == '',]
+
+
+```
+```{r}
+vcd::mosaic(typeInjury ~ position1,spacing = vcd::spacing_equal(sp = unit(0, "lines")),labeling = vcd::labeling_border(rot_labels = c(90, -90, 0, 0),gp_labels = gpar(fontsize = 6),gp_varnames = gpar(fontsize = 14, fontface = 1),pos_labels = "center",just_labels = "center"),finalDfPlayers2021)
+```
+```{r}
+ggplot(finalDfPlayers2021)+
+  geom_bar(aes(x = typeInjury))+
+  coord_flip() +
+  labs(x = "Injury",y="Number of players injured",title = "Injury by position")+facet_wrap(~position1,ncol=3) 
+```
+```{r}
+ggplot(finalDfPlayers2021)+
+  geom_bar(aes(x = typeInjury))+
+  coord_flip() +
+  labs(x = "Injury",y="Frequency of various injuries ",
+       title = "Injury types")
+```
+
+```{r}
+finalDfPlayers2021$typeInjury[finalDfPlayers2021$typeInjury == 'Right Achilles'] <- 'Achilles'
+finalDfPlayers2021$typeInjury[finalDfPlayers2021$typeInjury == 'Health and Safety protocols'] <- 'Health and Safety Protocols'
+finalDfPlayers2021$typeInjury[finalDfPlayers2021$typeInjury == 'Left knee'] <- 'Knee'
+finalDfPlayers2021$position1[finalDfPlayers2021$position1 == 'Guard'] <- 'PointGuard'
+finalDfPlayers2021
+```
+
+```{r}
+ggplot(finalDfPlayers2021)+
+  geom_bar(aes(x = typeInjury))+
+  coord_flip() +
+  labs(x = "Injury",y="Frequency of various injuries ",
+       title = "Injury types")
+```
+```{r}
+vcd::mosaic(typeInjury ~ position1,spacing = vcd::spacing_equal(sp = unit(0, "lines")),labeling = vcd::labeling_border(rot_labels = c(90, -90, 0, 0),gp_labels = gpar(fontsize = 6),gp_varnames = gpar(fontsize = 14, fontface = 1),pos_labels = "center",just_labels = "center"),finalDfPlayers2021)
+```
+```{r}
+new<-finalDfPlayers2021 %>% group_by(typeInjury) %>% summarise(n=n()) %>% top_n(7)
+temp<-new['typeInjury']
+tempList <- c(temp$typeInjury)
+newData <-subset(finalDfPlayers2021,typeInjury %in% tempList )
+newData
+```
+
+```{r}
+vcd::mosaic(typeInjury ~ position1,spacing = vcd::spacing_equal(sp = unit(0, "lines")),labeling = vcd::labeling_border(rot_labels = c(90, -90, 0, 0),gp_labels = gpar(fontsize = 6),gp_varnames = gpar(fontsize = 14, fontface = 1),pos_labels = "center",just_labels = "center"),newData)
+```
+```{r}
+vcd::mosaic(typeInjury ~hand,spacing = vcd::spacing_equal(sp = unit(0, "lines")),labeling = vcd::labeling_border(rot_labels = c(90, -90, 0, 0),gp_labels = gpar(fontsize = 6),gp_varnames = gpar(fontsize = 14, fontface = 1),pos_labels = "center",just_labels = "center"),newData)
+```
+
+
+
+```{r}
+ggplot(finalDfPlayers2021)+
+  geom_bar(aes(x = position1))+
+  coord_flip() +
+  labs(x = "Position",y="Number of players injured  ",
+       title = "Injury by position")
+```
+
+
+
+```{r}
+  shootingPosition <- strsplit(shootingPosition,c('and',','))
+injuryData
+```
+
+
+
+```{r}
+dictionary_bref_players()
+```
+```{r}
+injuryData
+```
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+newDf = read.csv('injuries_2010-2020.csv')
+#newDf
+injuredPlayerDataBefore21<-merge(newDf,playerData,by.x='Relinquished',by.y='namePlayerBREF')
+date<-as.POSIXct(injuredPlayerDataBefore21$Date,format = '%Y-%m-%d')
+year <- as.numeric(format(date,format = '%Y'))
+newDataBefore2021<-cbind(injuredPlayerDataBefore21,year)
+newDataBefore2021
+```
+```{r}
+yearsList <- sort(unique(newDataBefore2021$year),decreasing = TRUE)
+yearsList <- yearsList[1:1]
+newDataBefore2021 <-subset(newDataBefore2021,year %in% yearsList )
+newDataBefore2021
+```
+
+```{r}
+injuredPlayerUrlsBefore21<- newDataBefore2021['urlPlayerBioBREF']
+val<-lapply(injuredPlayerUrlsBefore21[[1]], fn)
+#injuredPlayerUrlsBefore21[[1]]
+```
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+df<-data.frame(matrix(unlist(val), nrow=length(val), byrow=TRUE))
+colnames(df)<-c('position1','hand')
+finalDfPlayersBefore2021<-cbind(newDataBefore2021,df)
+finalDfPlayersBefore2021 <- separate_rows(finalDfPlayersBefore2021,position1,sep="and")
+finalDfPlayersBefore2021 <- separate_rows(finalDfPlayersBefore2021,position1,sep=",")
+finalDfPlayersBefore2021[!finalDfPlayersBefore2021$position1 == '',]
+```
+```{r}
+differentTypesOfInjuries <- unique(finalDfPlayers2021$typeInjury)
+unnest_injuries <- finalDfPlayersBefore2021 %>%
+  select(year, Notes) %>%
+  unnest_tokens(word, Notes, token = "ngrams", n = 1) %>%
+  count(word) 
+unnest_injuries <- subset(unnest_injuries,word %in% tolower(differentTypesOfInjuries))
+injuriesCategories <- c(unnest_injuries$word)
+injuriesCategories
+```
+```{r}
+finalDfPlayersBefore2021 <- finalDfPlayersBefore2021 %>% filter(str_detect(tolower(Notes), paste(injuriesCategories, collapse = "|")))
+notesList <- finalDfPlayersBefore2021$Notes
+```
+```{r}
+categoryDefine <- function(notes)
+{
+  category = ''
+  notesList<- str_split(notes,' ')
+  for(i in injuriesCategories)
+  {
+    if(i %in% notesList[[1]])
+      category<-i
+    
+  }
+  return (category)
+}
+
+#categoryDefine('placed on IL with right knee inflammation')
+injuryCategoryPlayers<-lapply(notesList, categoryDefine)
+
+```
+
+
+
+
+```{r}
+df<-data.frame(matrix(unlist(injuryCategoryPlayers), nrow=length(injuryCategoryPlayers), byrow=TRUE))
+colnames(df)<-c('typeInjury')
+finalDfPlayersBefore2021<-cbind(finalDfPlayersBefore2021,df)
+finalDfPlayersBefore2021
+```
+
+
+```{r}
+finalDfPlayersBefore2021$position1[finalDfPlayersBefore2021$position1 == 'Guard'] <- 'PointGuard'
+new<-finalDfPlayersBefore2021 %>% group_by(typeInjury) %>% summarise(n=n()) %>% top_n(7)
+temp<-new['typeInjury']
+tempList <- c(temp$typeInjury)
+newDataBefore2021 <-subset(finalDfPlayersBefore2021,typeInjury %in% tempList )
+newDataBefore2021
+
+
+```
+
+```{r}
+unique(newDataBefore2021$position1)
+```
+
+```{r}
+vcd::mosaic(typeInjury ~ position1,spacing = vcd::spacing_equal(sp = unit(0, "lines")),labeling = vcd::labeling_border(rot_labels = c(90, -90, 0, 0),gp_labels = gpar(fontsize = 6),gp_varnames = gpar(fontsize = 14, fontface = 1),pos_labels = "center",just_labels = "center"),newDataBefore2021)
+```
+```{r}
+ggplot(newDataBefore2021)+
+  geom_bar(aes(x = typeInjury))+
+  coord_flip() +
+  labs(x = "Injury",y="Number of players injured",title = "Injury by position")+facet_wrap(~position1,ncol=3)
+```
+
+
+```{r}
+newDf = read.csv('injuries_2010-2020.csv')
+#newDf
+injuredPlayerDataBefore21<-merge(newDf,playerData,by.x='Relinquished',by.y='namePlayerBREF')
+date<-as.POSIXct(injuredPlayerDataBefore21$Date,format = '%Y-%m-%d')
+year <- as.numeric(format(date,format = '%Y'))
+newDataBefore2021<-cbind(injuredPlayerDataBefore21,year)
+yearsList <- sort(unique(newDataBefore2021$year),decreasing = TRUE)
+yearsList <- yearsList[2:2]
+newDataBefore2021 <-subset(newDataBefore2021,year %in% yearsList )
+injuredPlayerUrlsBefore21<- newDataBefore2021['urlPlayerBioBREF']
+val<-lapply(injuredPlayerUrlsBefore21[[1]], fn)
+df<-data.frame(matrix(unlist(val), nrow=length(val), byrow=TRUE))
+colnames(df)<-c('position1','hand')
+finalDfPlayersBefore2021<-cbind(newDataBefore2021,df)
+finalDfPlayersBefore2021 <- separate_rows(finalDfPlayersBefore2021,position1,sep="and")
+finalDfPlayersBefore2021 <- separate_rows(finalDfPlayersBefore2021,position1,sep=",")
+finalDfPlayersBefore2021[!finalDfPlayersBefore2021$position1 == '',]
+differentTypesOfInjuries <- unique(finalDfPlayers2021$typeInjury)
+unnest_injuries <- finalDfPlayersBefore2021 %>%
+  select(year, Notes) %>%
+  unnest_tokens(word, Notes, token = "ngrams", n = 1) %>%
+  count(word) 
+unnest_injuries <- subset(unnest_injuries,word %in% tolower(differentTypesOfInjuries))
+injuriesCategories <- c(unnest_injuries$word)
+finalDfPlayersBefore2021 <- finalDfPlayersBefore2021 %>% filter(str_detect(tolower(Notes), paste(injuriesCategories, collapse = "|")))
+notesList <- finalDfPlayersBefore2021$Notes
+injuryCategoryPlayers<-lapply(notesList, categoryDefine)
+df<-data.frame(matrix(unlist(injuryCategoryPlayers), nrow=length(injuryCategoryPlayers), byrow=TRUE))
+colnames(df)<-c('typeInjury')
+finalDfPlayersBefore2021<-cbind(finalDfPlayersBefore2021,df)
+finalDfPlayersBefore2021$position1[finalDfPlayersBefore2021$position1 == 'Guard'] <- 'PointGuard'
+new<-finalDfPlayersBefore2021 %>% group_by(typeInjury) %>% summarise(n=n()) %>% top_n(7)
+temp<-new['typeInjury']
+tempList <- c(temp$typeInjury)
+newDataBefore2021 <-subset(finalDfPlayersBefore2021,typeInjury %in% tempList )
+vcd::mosaic(typeInjury ~ position1,spacing = vcd::spacing_equal(sp = unit(0, "lines")),labeling = vcd::labeling_border(rot_labels = c(90, -90, 0, 0),gp_labels = gpar(fontsize = 6),gp_varnames = gpar(fontsize = 14, fontface = 1),pos_labels = "center",just_labels = "center"),newDataBefore2021)
+
+```
+
+```{r}
+ggplot(newDataBefore2021)+
+  geom_bar(aes(x = typeInjury))+
+  coord_flip() +
+  labs(x = "Injury",y="Number of players injured",title = "Injury by position")+facet_wrap(~position1,ncol=3)
+```
+
+
+```{r}
+newDf = read.csv('injuries_2010-2020.csv')
+#newDf
+injuredPlayerDataBefore21<-merge(newDf,playerData,by.x='Relinquished',by.y='namePlayerBREF')
+date<-as.POSIXct(injuredPlayerDataBefore21$Date,format = '%Y-%m-%d')
+year <- as.numeric(format(date,format = '%Y'))
+newDataBefore2021<-cbind(injuredPlayerDataBefore21,year)
+yearsList <- sort(unique(newDataBefore2021$year),decreasing = TRUE)
+yearsList <- yearsList[3:3]
+newDataBefore2021 <-subset(newDataBefore2021,year %in% yearsList )
+injuredPlayerUrlsBefore21<- newDataBefore2021['urlPlayerBioBREF']
+val<-lapply(injuredPlayerUrlsBefore21[[1]], fn)
+df<-data.frame(matrix(unlist(val), nrow=length(val), byrow=TRUE))
+colnames(df)<-c('position1','hand')
+finalDfPlayersBefore2021<-cbind(newDataBefore2021,df)
+finalDfPlayersBefore2021 <- separate_rows(finalDfPlayersBefore2021,position1,sep="and")
+finalDfPlayersBefore2021 <- separate_rows(finalDfPlayersBefore2021,position1,sep=",")
+finalDfPlayersBefore2021[!finalDfPlayersBefore2021$position1 == '',]
+differentTypesOfInjuries <- unique(finalDfPlayers2021$typeInjury)
+unnest_injuries <- finalDfPlayersBefore2021 %>%
+  select(year, Notes) %>%
+  unnest_tokens(word, Notes, token = "ngrams", n = 1) %>%
+  count(word) 
+unnest_injuries <- subset(unnest_injuries,word %in% tolower(differentTypesOfInjuries))
+injuriesCategories <- c(unnest_injuries$word)
+finalDfPlayersBefore2021 <- finalDfPlayersBefore2021 %>% filter(str_detect(tolower(Notes), paste(injuriesCategories, collapse = "|")))
+notesList <- finalDfPlayersBefore2021$Notes
+injuryCategoryPlayers<-lapply(notesList, categoryDefine)
+df<-data.frame(matrix(unlist(injuryCategoryPlayers), nrow=length(injuryCategoryPlayers), byrow=TRUE))
+colnames(df)<-c('typeInjury')
+finalDfPlayersBefore2021<-cbind(finalDfPlayersBefore2021,df)
+finalDfPlayersBefore2021$position1[finalDfPlayersBefore2021$position1 == 'Guard'] <- 'PointGuard'
+new<-finalDfPlayersBefore2021 %>% group_by(typeInjury) %>% summarise(n=n()) %>% top_n(7)
+temp<-new['typeInjury']
+tempList <- c(temp$typeInjury)
+newDataBefore2021 <-subset(finalDfPlayersBefore2021,typeInjury %in% tempList )
+vcd::mosaic(typeInjury ~ position1,spacing = vcd::spacing_equal(sp = unit(0, "lines")),labeling = vcd::labeling_border(rot_labels = c(90, -90, 0, 0),gp_labels = gpar(fontsize = 6),gp_varnames = gpar(fontsize = 14, fontface = 1),pos_labels = "center",just_labels = "center"),newDataBefore2021)
+
+```
+```{r}
+ggplot(newDataBefore2021)+
+  geom_bar(aes(x = typeInjury))+
+  coord_flip() +
+  labs(x = "Injury",y="Number of players injured",title = "Injury by position")+facet_wrap(~position1,ncol=3)
+```
+
+```{r}
+newDf = read.csv('basketballScrapingOutput.csv')
+colSums(is.na(newDf)) %>% sort(decreasing=TRUE)
+```
+```{r}
+newDf = read.csv('basketballScrapingOutput.csv')
+#newDf
+#newDf<-newDf[!newDf$Relinquished == '',]
+#injuredPlayerDataBefore21<-merge(newDf,playerData,by.x='Relinquished',by.y='namePlayerBREF')
+#intersect(newDf$Relinquished,playerData$namePlayerBREF)
+#filter(newDf,Relinquished == ' James Harden')
+newDf$Relinquished <-str_trim(newDf$Relinquished)
+injuredPlayerDataBefore21<-merge(newDf,playerData,by.x='Relinquished',by.y='namePlayerBREF')
+injuredPlayerDataBefore2021
+#playerData
+```
+
+
+
+```{r}
+newDf = read.csv('basketballScrapingOutput.csv')
+#newDf
+newDf$Relinquished <-str_trim(newDf$Relinquished)
+newDf<-newDf[!newDf$Relinquished == '',]
+injuredPlayerDataBefore21<-merge(newDf,playerData,by.x='Relinquished',by.y='namePlayerBREF')
+date<-as.POSIXct(injuredPlayerDataBefore21$Date,format = '%Y-%m-%d')
+year <- as.numeric(format(date,format = '%Y'))
+newDataBefore2021<-cbind(injuredPlayerDataBefore21,year)
+yearsList <- sort(unique(newDataBefore2021$year),decreasing = TRUE)
+yearsList <- yearsList[4:4]
+newDataBefore2021 <-subset(newDataBefore2021,year %in% yearsList )
+injuredPlayerUrlsBefore21<- newDataBefore2021['urlPlayerBioBREF']
+val<-lapply(injuredPlayerUrlsBefore21[[1]], fn)
+df<-data.frame(matrix(unlist(val), nrow=length(val), byrow=TRUE))
+colnames(df)<-c('position1','hand')
+finalDfPlayersBefore2021<-cbind(newDataBefore2021,df)
+finalDfPlayersBefore2021 <- separate_rows(finalDfPlayersBefore2021,position1,sep="and")
+finalDfPlayersBefore2021 <- separate_rows(finalDfPlayersBefore2021,position1,sep=",")
+finalDfPlayersBefore2021[!finalDfPlayersBefore2021$position1 == '',]
+differentTypesOfInjuries <- unique(finalDfPlayers2021$typeInjury)
+unnest_injuries <- finalDfPlayersBefore2021 %>%
+  select(year, Notes) %>%
+  unnest_tokens(word, Notes, token = "ngrams", n = 1) %>%
+  count(word) 
+unnest_injuries <- subset(unnest_injuries,word %in% tolower(differentTypesOfInjuries))
+injuriesCategories <- c(unnest_injuries$word)
+finalDfPlayersBefore2021 <- finalDfPlayersBefore2021 %>% filter(str_detect(tolower(Notes), paste(injuriesCategories, collapse = "|")))
+notesList <- finalDfPlayersBefore2021$Notes
+injuryCategoryPlayers<-lapply(notesList, categoryDefine)
+df<-data.frame(matrix(unlist(injuryCategoryPlayers), nrow=length(injuryCategoryPlayers), byrow=TRUE))
+colnames(df)<-c('typeInjury')
+finalDfPlayersBefore2021<-cbind(finalDfPlayersBefore2021,df)
+finalDfPlayersBefore2021$position1[finalDfPlayersBefore2021$position1 == 'Guard'] <- 'PointGuard'
+new<-finalDfPlayersBefore2021 %>% group_by(typeInjury) %>% summarise(n=n()) %>% top_n(7)
+temp<-new['typeInjury']
+tempList <- c(temp$typeInjury)
+newDataBefore2021 <-subset(finalDfPlayersBefore2021,typeInjury %in% tempList )
+vcd::mosaic(typeInjury ~ position1,spacing = vcd::spacing_equal(sp = unit(0, "lines")),labeling = vcd::labeling_border(rot_labels = c(90, -90, 0, 0),gp_labels = gpar(fontsize = 6),gp_varnames = gpar(fontsize = 14, fontface = 1),pos_labels = "center",just_labels = "center"),newDataBefore2021)
+```
+```{r}
+ggplot(newDataBefore2021)+
+  geom_bar(aes(x = typeInjury))+
+  coord_flip() +
+  labs(x = "Injury",y="Number of players injured",title = "Injury by position")+facet_wrap(~position1,ncol=3) 
+```
+
+
+```{r}
+injuredPlayerDatabefore21 <- filter(newDf,Relinquished %in% playerData$namePlayerBREF)
+playerNamesBefore21 <- injuredPlayerDatabefore21$Relinquished
+injuredPlayerData<- filter(playerData,namePlayerBREF %in% playerNamesBefore21)
+injuredPlayerUrlsBefore21<- injuredPlayerData['urlPlayerBioBREF']
+injuredPlayerUrlsBefore21 
+```
+```{r}
+injuredPlayerUrlsBefore21 
+```
+
+
+
+
+
+```{r}
+count <- c(1:1291)#1291
+pageNumbers <- (count-1)*25
+commonUrl <- 'http://www.prosportstransactions.com/basketball/Search/SearchResults.php?Player=&Team=&BeginDate=&EndDate=&ILChkBx=yes&Submit=Search&start='
+allYearsdf <- data.frame(Date=character(),Team=character(), Acquired=character(), Relinquished=character(), Notes=character()) 
+```
+
+```{r}
+for (i in pageNumbers)
+{
+url <- paste(c(commonUrl,i),collapse='')
+print(url)
+page <- read_html(url)
+content <- page %>%
+  html_node('div.container') %>%
+  html_node('table.datatable') %>%
+  html_table()
+headings <- head(content,1)
+df<-content
+colnames(df) <-c(headings)
+df <- df[-1,]
+x<-'•'
+df$Relinquished<-sub(x,'',df$Relinquished)
+df$Acquired<-sub(x,'',df$Acquired)
+allYearsdf<-rbind(allYearsdf,df)
+}
+
+allYearsdf
+```
+
+```{r}
+write.csv(allYearsdf,'basketballScrapingOutput.csv')
+```
+
+```{r}
+
+```
+

@@ -1,0 +1,19 @@
+# Interactive component
+
+Below is an interactive visualization of individual player performance across the three time periods from 
+the COVID analysis. Choose a team from the dropdown to narrow down the data to a single team's top players. 
+How these top players were selected is explained in the [Data Transformation][Data transformation] section.
+Each dot represents one player's performance in a time period, with offensive ratings on the 
+y-Axis and defensive ratings on a reversed x-Axis (because lower means better defense). Clicking 
+between the three buttons below updates the player's ratings to the selected time period. 
+
+Movement shows how players improve/get worse in relation to each other between the different periods. 
+Moving towards the top right means all around improvement, while moving towards the bottom left means worse performance.
+
+Click on a dot to highlight exact ratings and player name. The advantage of the interactive visualization lies in 
+being able to zoom in and out on the fly -- one can see a single player's data against his team and the whole league. 
+The movement also allows the user to get a more intuitive sense of how players got better/worse.
+
+Note: Teams that did not make the playoffs fly off the screen when selecting playoffs.
+
+<iframe width="800" height="542" src="https://vizhub.com/hernandz/243c8d390df84b219d55317a332566ba?mode=embed" title="Scatterplot NBA" frameborder="0" ></iframe>

@@ -1,0 +1,83 @@
+---
+title: "Produce d3 csv"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(nbastatR)
+library(tidyverse)
+```
+
+This code is also found in part 5, don't need to repeat if already in environment.
+```{r}
+covid_season_players_month_before <-
+  teams_players_stats(
+    seasons = 2020,
+    measures = "Advanced",
+    types = "player",
+    tables = "general",
+    modes = "PerGame",
+    date_from = "2-11-20",
+    date_to = "3-11-20"
+  ) %>%
+  unnest(dataTable) %>%
+  mutate(df_type = "month_before")
+
+bubble_players <-
+  teams_players_stats(
+    seasons = 2020,
+    measures = "Advanced",
+    types = "player",
+    season_types = c("Regular Season", "Playoffs"),
+    tables = "general",
+    modes = "PerGame",
+    date_from = "7-29-20",
+    date_to = "10-11-20"
+  ) %>%
+  unnest(dataTable)
+
+bubble_seeding_players <- bubble_players %>%
+  filter(typeSeason == "Regular Season") %>%
+  mutate(df_type = "bubble_seeding")
+
+bubble_playoffs_players <- bubble_players  %>%
+  filter(typeSeason == "Playoffs") %>%
+  mutate(df_type = "bubble_playoffs")
+
+bubble_season_players_combined <- bind_rows(
+  covid_season_players_month_before,
+  bubble_seeding_players,
+  bubble_playoffs_players
+)
+```
+
+This part is unique to this file.
+```{r}
+starters <- teams_players_stats(seasons = 2020, types = "player", starters_bench = list("Starters")) %>% 
+  unnest(dataTable) 
+
+top_guys_bubble <- starters %>% 
+  semi_join(bubble_seeding_players, by = "namePlayer") %>% #only return players with bubble data, some players opted out
+  semi_join(covid_season_players_month_before, by = "namePlayer") %>% 
+  group_by(slugTeam) %>% 
+  slice_max(gp, n = 6)
+
+d3_data <- bubble_season_combined %>% 
+  semi_join(top_guys_bubble, by = "namePlayer") %>% 
+  left_join(bubble_teams, by = "slugTeam") %>% 
+  select(name = "namePlayer",
+         team_abb = "slugTeam",
+         team_name = "nameTeam",
+         ortg,
+         drtg,
+         netrtg,
+         df_type
+         ) %>% 
+  pivot_wider(names_from = "df_type", values_from = c("ortg", "drtg", "netrtg"))
+ 
+d3_data %>%
+  write_csv("data/d3_data.csv")
+```
+

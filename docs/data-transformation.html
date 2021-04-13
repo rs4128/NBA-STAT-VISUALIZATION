@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+<head>
+
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <title>Chapter 3 Data transformation | COVID, Kobe, and Injury in the NBA</title>
+  <meta name="description" content="Chapter 3 Data transformation | COVID, Kobe, and Injury in the NBA" />
+  <meta name="generator" content="bookdown 0.21 and GitBook 2.6.7" />
+
+  <meta property="og:title" content="Chapter 3 Data transformation | COVID, Kobe, and Injury in the NBA" />
+  <meta property="og:type" content="book" />
+  
+  
+  
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Chapter 3 Data transformation | COVID, Kobe, and Injury in the NBA" />
+  
+  
+  
+
+<meta name="author" content="Santos Hernandez and Rahul Subramaniam" />
+
+
+<meta name="date" content="2021-04-11" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  
+  
+<link rel="prev" href="data-sources.html"/>
+<link rel="next" href="missing-values.html"/>
+<script src="libs/header-attrs-2.5/header-attrs.js"></script>
+<script src="libs/jquery-2.2.3/jquery.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-table.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-clipboard.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+
+<link href="libs/anchor-sections-1.0/anchor-sections.css" rel="stylesheet" />
+<script src="libs/anchor-sections-1.0/anchor-sections.js"></script>
+
+
+<style type="text/css">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li><a href="./">NBA - EDAV</a></li>
+
+<li class="divider"></li>
+<li class="chapter" data-level="1" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i><b>1</b> Introduction</a>
+<ul>
+<li class="chapter" data-level="1.1" data-path="index.html"><a href="index.html#why-basketball"><i class="fa fa-check"></i><b>1.1</b> Why basketball?</a></li>
+</ul></li>
+<li class="chapter" data-level="2" data-path="data-sources.html"><a href="data-sources.html"><i class="fa fa-check"></i><b>2</b> Data sources</a>
+<ul>
+<li class="chapter" data-level="2.1" data-path="data-sources.html"><a href="data-sources.html#game-statistics"><i class="fa fa-check"></i><b>2.1</b> Game statistics</a>
+<ul>
+<li class="chapter" data-level="2.1.1" data-path="data-sources.html"><a href="data-sources.html#covid-cases"><i class="fa fa-check"></i><b>2.1.1</b> COVID cases</a></li>
+</ul></li>
+<li class="chapter" data-level="2.2" data-path="data-sources.html"><a href="data-sources.html#player-positions-and-injuries"><i class="fa fa-check"></i><b>2.2</b> Player positions and injuries</a></li>
+<li class="chapter" data-level="2.3" data-path="data-sources.html"><a href="data-sources.html#issues"><i class="fa fa-check"></i><b>2.3</b> Issues</a></li>
+</ul></li>
+<li class="chapter" data-level="3" data-path="data-transformation.html"><a href="data-transformation.html"><i class="fa fa-check"></i><b>3</b> Data transformation</a>
+<ul>
+<li class="chapter" data-level="3.1" data-path="data-transformation.html"><a href="data-transformation.html#game-statistics-1"><i class="fa fa-check"></i><b>3.1</b> Game statistics</a>
+<ul>
+<li class="chapter" data-level="3.1.1" data-path="data-transformation.html"><a href="data-transformation.html#covid-cases-1"><i class="fa fa-check"></i><b>3.1.1</b> COVID cases</a></li>
+</ul></li>
+<li class="chapter" data-level="3.2" data-path="data-transformation.html"><a href="data-transformation.html#injuries"><i class="fa fa-check"></i><b>3.2</b> Injuries</a></li>
+<li class="chapter" data-level="3.3" data-path="data-transformation.html"><a href="data-transformation.html#player-positions"><i class="fa fa-check"></i><b>3.3</b> Player positions</a></li>
+<li class="chapter" data-level="3.4" data-path="data-transformation.html"><a href="data-transformation.html#d3"><i class="fa fa-check"></i><b>3.4</b> d3</a></li>
+</ul></li>
+<li class="chapter" data-level="4" data-path="missing-values.html"><a href="missing-values.html"><i class="fa fa-check"></i><b>4</b> Missing values</a></li>
+<li class="chapter" data-level="5" data-path="results.html"><a href="results.html"><i class="fa fa-check"></i><b>5</b> Results</a>
+<ul>
+<li class="chapter" data-level="5.1" data-path="results.html"><a href="results.html#covid"><i class="fa fa-check"></i><b>5.1</b> COVID</a>
+<ul>
+<li class="chapter" data-level="5.1.1" data-path="results.html"><a href="results.html#approach"><i class="fa fa-check"></i><b>5.1.1</b> Approach</a></li>
+<li class="chapter" data-level="5.1.2" data-path="results.html"><a href="results.html#offense"><i class="fa fa-check"></i><b>5.1.2</b> Offense</a></li>
+<li class="chapter" data-level="5.1.3" data-path="results.html"><a href="results.html#defense"><i class="fa fa-check"></i><b>5.1.3</b> Defense</a></li>
+<li class="chapter" data-level="5.1.4" data-path="results.html"><a href="results.html#overall"><i class="fa fa-check"></i><b>5.1.4</b> Overall</a></li>
+</ul></li>
+</ul></li>
+<li class="chapter" data-level="6" data-path="interactive-component.html"><a href="interactive-component.html"><i class="fa fa-check"></i><b>6</b> Interactive component</a></li>
+<li class="chapter" data-level="7" data-path="conclusion.html"><a href="conclusion.html"><i class="fa fa-check"></i><b>7</b> Conclusion</a></li>
+<li class="divider"></li>
+<li><a href="https://github.com/rstudio/bookdown" target="blank">Published with bookdown</a></li>
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">COVID, Kobe, and Injury in the NBA</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="data-transformation" class="section level1" number="3">
+<h1><span class="header-section-number">Chapter 3</span> Data transformation</h1>
+<div id="game-statistics-1" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Game statistics</h2>
+<p>When using the NBA stats R package, requested data comes as a nested dataframe.
+Each row has data for a single season, with either regular season or playoff data.
+So if you requested 2018-19 and 2019-2020 data for the regular season and playoffs,
+4 rows would be returned. A column at the end has the actual game stats dataframes,
+so these must be unnested.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="data-transformation.html#cb1-1" aria-hidden="true" tabindex="-1"></a>covid_season_month_before <span class="ot">&lt;-</span> <span class="fu">teams_players_stats</span>(<span class="at">seasons =</span> <span class="dv">2020</span>, <span class="at">measures =</span> <span class="st">&quot;Advanced&quot;</span>, <span class="at">types =</span> <span class="st">&quot;team&quot;</span>, <span class="at">tables =</span> <span class="st">&quot;general&quot;</span>, <span class="at">modes =</span> <span class="st">&quot;PerGame&quot;</span>, <span class="at">date_from =</span> <span class="st">&quot;2-11-20&quot;</span>, <span class="at">date_to =</span> <span class="st">&quot;3-11-20&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-2"><a href="data-transformation.html#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(dataTable) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-3"><a href="data-transformation.html#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">df_type =</span> <span class="st">&quot;month_before&quot;</span>)</span>
+<span id="cb1-4"><a href="data-transformation.html#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="data-transformation.html#cb1-5" aria-hidden="true" tabindex="-1"></a>bubble <span class="ot">&lt;-</span> <span class="fu">teams_players_stats</span>(<span class="at">seasons =</span> <span class="dv">2020</span>, <span class="at">measures =</span> <span class="st">&quot;Advanced&quot;</span>,  <span class="at">types =</span> <span class="st">&quot;team&quot;</span>, <span class="at">season_types =</span> <span class="fu">c</span>(<span class="st">&quot;Regular Season&quot;</span>, <span class="st">&quot;Playoffs&quot;</span>), <span class="at">tables =</span> <span class="st">&quot;general&quot;</span>, <span class="at">modes =</span> <span class="st">&quot;PerGame&quot;</span>, <span class="at">date_from =</span> <span class="st">&quot;7-29-20&quot;</span>, <span class="at">date_to =</span> <span class="st">&quot;10-11-20&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb1-6"><a href="data-transformation.html#cb1-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(dataTable) </span></code></pre></div>
+<p>We split the time periods that we wanted to compare into separate dataframes and added a new column,
+<code>df_type</code>, to distinguish them.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="data-transformation.html#cb2-1" aria-hidden="true" tabindex="-1"></a>bubble_seeding <span class="ot">&lt;-</span> bubble <span class="sc">%&gt;%</span> </span>
+<span id="cb2-2"><a href="data-transformation.html#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(typeSeason <span class="sc">==</span> <span class="st">&quot;Regular Season&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-3"><a href="data-transformation.html#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">df_type =</span> <span class="st">&quot;bubble_seeding&quot;</span>) </span>
+<span id="cb2-4"><a href="data-transformation.html#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="data-transformation.html#cb2-5" aria-hidden="true" tabindex="-1"></a>bubble_playoffs <span class="ot">&lt;-</span> bubble <span class="sc">%&gt;%</span> </span>
+<span id="cb2-6"><a href="data-transformation.html#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(typeSeason <span class="sc">==</span> <span class="st">&quot;Playoffs&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb2-7"><a href="data-transformation.html#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">df_type =</span> <span class="st">&quot;bubble_playoffs&quot;</span>)   </span></code></pre></div>
+<p>Finally, we made the data long for it to work with ggplot. The data when requested comes wide,
+with a column for each statistic.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="data-transformation.html#cb3-1" aria-hidden="true" tabindex="-1"></a>bubble_stats_long <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(covid_season_month_before,</span>
+<span id="cb3-2"><a href="data-transformation.html#cb3-2" aria-hidden="true" tabindex="-1"></a>                               bubble_seeding,</span>
+<span id="cb3-3"><a href="data-transformation.html#cb3-3" aria-hidden="true" tabindex="-1"></a>                               bubble_playoffs,) <span class="sc">%&gt;%</span></span>
+<span id="cb3-4"><a href="data-transformation.html#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(nameTeam<span class="sc">:</span>paceE,</span>
+<span id="cb3-5"><a href="data-transformation.html#cb3-5" aria-hidden="true" tabindex="-1"></a>         df_type,</span>
+<span id="cb3-6"><a href="data-transformation.html#cb3-6" aria-hidden="true" tabindex="-1"></a>         <span class="sc">-</span><span class="fu">contains</span>(<span class="st">&quot;rank&quot;</span>)) <span class="sc">%&gt;%</span> <span class="co">#drop some stats we&#39;re not interested in</span></span>
+<span id="cb3-7"><a href="data-transformation.html#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(gp<span class="sc">:</span>paceE, <span class="at">names_to =</span> <span class="st">&quot;rating&quot;</span>, <span class="at">values_to =</span> <span class="st">&quot;value&quot;</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb3-8"><a href="data-transformation.html#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(bubble_teams, <span class="at">by =</span> <span class="st">&quot;nameTeam&quot;</span>) <span class="co">#only teams that were invited to bubble</span></span></code></pre></div>
+<p>The same process was used for both team and player data because they come in the same form.</p>
+<div id="covid-cases-1" class="section level3" number="3.1.1">
+<h3><span class="header-section-number">3.1.1</span> COVID cases</h3>
+<p>Some additional steps were taken to integrate the COVID case data. The table from SLAM was
+crawled with <code>rvest</code> and cleaned slightly to be able to join onto the player stats. Furthermore,
+the dates were converted into date objects so that they would display in order on the x-axis.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="data-transformation.html#cb4-1" aria-hidden="true" tabindex="-1"></a>covid_players <span class="ot">&lt;-</span> <span class="fu">read_html</span>(<span class="st">&quot;https://www.slamonline.com/nba/nba-coronavirus-covid-list/&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-2"><a href="data-transformation.html#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">html_element</span>(<span class="at">css =</span> <span class="st">&quot;.wp-block-table&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-3"><a href="data-transformation.html#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">html_table</span>(<span class="at">header =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb4-4"><a href="data-transformation.html#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="data-transformation.html#cb4-5" aria-hidden="true" tabindex="-1"></a>covid_players_fixed <span class="ot">&lt;-</span> covid_players <span class="sc">%&gt;%</span> </span>
+<span id="cb4-6"><a href="data-transformation.html#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">name =</span> <span class="st">&quot;Player&quot;</span>,</span>
+<span id="cb4-7"><a href="data-transformation.html#cb4-7" aria-hidden="true" tabindex="-1"></a>         <span class="at">date_reported =</span> <span class="st">&quot;Reported&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb4-8"><a href="data-transformation.html#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">team_abb =</span> <span class="fu">str_sub</span>(name, <span class="sc">-</span><span class="dv">4</span>, <span class="sc">-</span><span class="dv">2</span>),</span>
+<span id="cb4-9"><a href="data-transformation.html#cb4-9" aria-hidden="true" tabindex="-1"></a>         <span class="at">name =</span> <span class="fu">str_remove</span>(name, <span class="st">&quot; </span><span class="sc">\\</span><span class="st">(.+</span><span class="sc">\\</span><span class="st">)&quot;</span>),</span>
+<span id="cb4-10"><a href="data-transformation.html#cb4-10" aria-hidden="true" tabindex="-1"></a>         <span class="at">date_reported =</span> <span class="fu">str_remove</span>(date_reported, <span class="st">&quot; </span><span class="sc">\\</span><span class="st">(.+</span><span class="sc">\\</span><span class="st">)&quot;</span>),</span>
+<span id="cb4-11"><a href="data-transformation.html#cb4-11" aria-hidden="true" tabindex="-1"></a>         <span class="at">date_reported =</span> <span class="fu">mdy</span>(<span class="fu">str_c</span>(date_reported, <span class="st">&quot; 2020&quot;</span>)))</span></code></pre></div>
+</div>
+</div>
+<div id="injuries" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Injuries</h2>
+</div>
+<div id="player-positions" class="section level2" number="3.3">
+<h2><span class="header-section-number">3.3</span> Player positions</h2>
+</div>
+<div id="d3" class="section level2" number="3.4">
+<h2><span class="header-section-number">3.4</span> d3</h2>
+<p>A small amount of tooling was required to use the NBAstatR data with d3. To make the amount of players more manageable, we
+pared down the total number of players in the dataset to just the big names on each team. There
+are a number of players that play only a few games each year and greatly skew their ranking data. So,
+get the best and most notable players, we needed to look beyond ratings. First, took data from the whole season for only <em>starters</em>.
+This already eliminates a lot of players – only reasonably good players get to start.
+Then, we took the top 6 ranks for each team by number of games started.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="data-transformation.html#cb5-1" aria-hidden="true" tabindex="-1"></a>starters <span class="ot">&lt;-</span> <span class="fu">teams_players_stats</span>(<span class="at">seasons =</span> <span class="dv">2020</span>, <span class="at">types =</span> <span class="st">&quot;player&quot;</span>, <span class="at">starters_bench =</span> <span class="fu">list</span>(<span class="st">&quot;Starters&quot;</span>)) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-2"><a href="data-transformation.html#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">unnest</span>(dataTable) </span>
+<span id="cb5-3"><a href="data-transformation.html#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="data-transformation.html#cb5-4" aria-hidden="true" tabindex="-1"></a>top_guys_bubble <span class="ot">&lt;-</span> starters <span class="sc">%&gt;%</span> </span>
+<span id="cb5-5"><a href="data-transformation.html#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(bubble_seeding_players, <span class="at">by =</span> <span class="st">&quot;namePlayer&quot;</span>) <span class="sc">%&gt;%</span> <span class="co">#only return players with bubble data, some players opted out</span></span>
+<span id="cb5-6"><a href="data-transformation.html#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(covid_season_players_month_before, <span class="at">by =</span> <span class="st">&quot;namePlayer&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-7"><a href="data-transformation.html#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(slugTeam) <span class="sc">%&gt;%</span> </span>
+<span id="cb5-8"><a href="data-transformation.html#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_max</span>(gp, <span class="at">n =</span> <span class="dv">6</span>)</span></code></pre></div>
+<p>Once we found the list of players we wanted, we filtered our game data from these names.
+Then, we cut down the amount of game stats to just the ones we were interested in.
+Finally, we spread the data wide by time period so that data from each period would be associated with a
+single svg element. This would allow us to access this data easily, letting us read the data just once.</p>
+<p>Being d3 beginners, we were not sure of this approach. Maybe performance would have been better to
+add/remove dots as needed rather than load them all and hide/show them? Or even split the csv into three,
+one for each time period, loading as needed. Regardless, this approach worked!</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="data-transformation.html#cb6-1" aria-hidden="true" tabindex="-1"></a>d3_data <span class="ot">&lt;-</span> bubble_season_combined <span class="sc">%&gt;%</span> </span>
+<span id="cb6-2"><a href="data-transformation.html#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">semi_join</span>(top_guys_bubble, <span class="at">by =</span> <span class="st">&quot;namePlayer&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-3"><a href="data-transformation.html#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(bubble_teams, <span class="at">by =</span> <span class="st">&quot;slugTeam&quot;</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-4"><a href="data-transformation.html#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="at">name =</span> <span class="st">&quot;namePlayer&quot;</span>,</span>
+<span id="cb6-5"><a href="data-transformation.html#cb6-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">team_abb =</span> <span class="st">&quot;slugTeam&quot;</span>,</span>
+<span id="cb6-6"><a href="data-transformation.html#cb6-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">team_name =</span> <span class="st">&quot;nameTeam&quot;</span>,</span>
+<span id="cb6-7"><a href="data-transformation.html#cb6-7" aria-hidden="true" tabindex="-1"></a>         ortg,</span>
+<span id="cb6-8"><a href="data-transformation.html#cb6-8" aria-hidden="true" tabindex="-1"></a>         drtg,</span>
+<span id="cb6-9"><a href="data-transformation.html#cb6-9" aria-hidden="true" tabindex="-1"></a>         netrtg,</span>
+<span id="cb6-10"><a href="data-transformation.html#cb6-10" aria-hidden="true" tabindex="-1"></a>         df_type</span>
+<span id="cb6-11"><a href="data-transformation.html#cb6-11" aria-hidden="true" tabindex="-1"></a>         ) <span class="sc">%&gt;%</span> </span>
+<span id="cb6-12"><a href="data-transformation.html#cb6-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> <span class="st">&quot;df_type&quot;</span>, <span class="at">values_from =</span> <span class="fu">c</span>(<span class="st">&quot;ortg&quot;</span>, <span class="st">&quot;drtg&quot;</span>, <span class="st">&quot;netrtg&quot;</span>))</span>
+<span id="cb6-13"><a href="data-transformation.html#cb6-13" aria-hidden="true" tabindex="-1"></a> </span>
+<span id="cb6-14"><a href="data-transformation.html#cb6-14" aria-hidden="true" tabindex="-1"></a>d3_data <span class="sc">%&gt;%</span></span>
+<span id="cb6-15"><a href="data-transformation.html#cb6-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">write_csv</span>(<span class="st">&quot;data/d3_data.csv&quot;</span>)</span></code></pre></div>
+
+</div>
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="data-sources.html" class="navigation navigation-prev " aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+<a href="missing-values.html" class="navigation navigation-next " aria-label="Next page"><i class="fa fa-angle-right"></i></a>
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/lunr.js"></script>
+<script src="libs/gitbook-2.6.7/js/clipboard.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-clipboard.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"linkedin": false,
+"weibo": false,
+"instapaper": false,
+"vk": false,
+"all": ["facebook", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": "https://github.com/hernandz/nba_edav_2021/edit/main/03-cleaning.Rmd",
+"text": "Edit"
+},
+"history": {
+"link": null,
+"text": null
+},
+"view": {
+"link": "https://github.com/hernandz/nba_edav_2021/blob/main/03-cleaning.Rmd",
+"text": null
+},
+"download": null,
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+</body>
+
+</html>

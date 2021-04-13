@@ -1,0 +1,145 @@
+---
+title: "Data Visualization Kobe Bryant Question"
+author: "Rahul"
+date: "4/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(nbastatR)
+library(tidyverse)
+library(tidyr)
+```
+
+```{r}
+fix.labelsForBottomTeams <- function(x){
+  x - 20
+}
+fix.labelsForTopTeams <- function(x){
+  x - 5
+}
+return_time <- function(x)
+{
+  if(x == 1)
+    return ('Before 26th')
+  else
+    return ('After 26th')
+}
+```
+
+```{r}
+bryant_death_date='1-26-20'
+```
+
+```{r}
+team_data_2020_after_26 <- teams_players_stats(seasons = 2020, measures = "Advanced", types = "team", tables = "general", modes = "PerGame", date_from = "1-26-20", date_to = "2-9-20")$dataTable[[1]]
+team_data_2020_before_26 <- teams_players_stats(seasons = 2020, measures = "Advanced", types = "team", tables = "general", modes = "PerGame", date_from = "1-5-20", date_to = "1-25-20")$dataTable[[1]]
+
+ordered_team_data_2020_after_death <-team_data_2020_after_26[order(team_data_2020_after_26[,41]),]
+
+
+team_list <- ordered_team_data_2020_after_death$nameTeam
+bottom_teams <- team_list[1:15]
+top_teams <- team_list[16:30]
+
+
+team_data_2020_after_26_top_teams <- subset(team_data_2020_after_26,nameTeam %in% top_teams)
+team_data_2020_before_26_top_teams <- subset(team_data_2020_before_26,nameTeam %in% top_teams) 
+team_data_2020_after_26_bottom_teams <-subset(team_data_2020_after_26,nameTeam %in% bottom_teams)
+team_data_2020_before_26_bottom_teams <- subset(team_data_2020_before_26,nameTeam %in% bottom_teams)
+
+netrating_after_26<- team_data_2020_after_26_top_teams$netrtg
+netrating_before_26<- team_data_2020_before_26_top_teams$netrtg 
+
+teams <- team_data_2020_after_26_top_teams$nameTeam
+bar_plot_df_2020_top_teams <- data.frame(teams,netrating_before_26,netrating_after_26)
+pivoted_bar_plot_df_2020_top_teams <- pivot_longer(bar_plot_df_2020_top_teams,cols = c('netrating_before_26','netrating_after_26'),names_to='variable', 
+values_to="value")
+
+netrating_after_26<- team_data_2020_after_26_bottom_teams$netrtg
+netrating_before_26<- team_data_2020_before_26_bottom_teams$netrtg 
+
+teams <- team_data_2020_before_26_bottom_teams$nameTeam
+
+bar_plot_df_2020_bottom_teams <- data.frame(teams,netrating_before_26,netrating_after_26)
+pivoted_bar_plot_df_2020_bottom_teams <- pivot_longer(bar_plot_df_2020_bottom_teams,cols = c('netrating_before_26','netrating_after_26'),names_to='variable', 
+values_to="value")
+
+pivoted_bar_plot_df_2020_top_teams
+```
+
+
+```{r}
+ggplot(pivoted_bar_plot_df_2020_top_teams, aes(x=teams, y=value, fill=variable)) +geom_bar(stat='identity', position='dodge')+coord_flip()
+```
+
+
+
+```{r}
+ggplot(pivoted_bar_plot_df_2020_bottom_teams, aes(x=teams, y=value, fill=variable)) +geom_bar(stat='identity', position='dodge')+coord_flip()
+```
+
+```{r}
+selected_teams_years_analysis = c('Los Angeles Lakers','LA Clippers','Dallas Mavericks','Philadelphia 76ers','Utah Jazz')
+```
+
+```{r}
+selected_team_data_2020_after_26 <- subset(team_data_2020_after_26,nameTeam %in% selected_teams_years_analysis) 
+team_data_2019_after_26 <- teams_players_stats(seasons = 2019, measures = "Advanced", types = "team", tables = "general", modes = "PerGame", date_from = "1-26-19", date_to = "2-9-19")$dataTable[[1]]
+selected_team_data_2019_after_26 <- subset(team_data_2019_after_26,nameTeam %in% selected_teams_years_analysis) 
+team_data_2021_after_26 <- teams_players_stats(seasons = 2021, measures = "Advanced", types = "team", tables = "general", modes = "PerGame", date_from = "1-26-21", date_to = "2-9-21")$dataTable[[1]]
+selected_team_data_2021_after_26 <- subset(team_data_2021_after_26,nameTeam %in% selected_teams_years_analysis) 
+team_data_2018_after_26 <- teams_players_stats(seasons = 2018, measures = "Advanced", types = "team", tables = "general", modes = "PerGame", date_from = "1-26-18", date_to = "2-9-18")$dataTable[[1]]
+selected_team_data_2018_after_26 <- subset(team_data_2018_after_26,nameTeam %in% selected_teams_years_analysis) 
+team_data_2017_after_26 <- teams_players_stats(seasons = 2017, measures = "Advanced", types = "team", tables = "general", modes = "PerGame", date_from = "1-26-17", date_to = "2-9-17")$dataTable[[1]]
+selected_team_data_2017_after_26 <- subset(team_data_2017_after_26,nameTeam %in% selected_teams_years_analysis) 
+team_data_2016_after_26 <- teams_players_stats(seasons = 2016, measures = "Advanced", types = "team", tables = "general", modes = "PerGame", date_from = "1-26-16", date_to = "2-9-16")$dataTable[[1]]
+selected_team_data_2016_after_26 <- subset(team_data_2016_after_26,nameTeam %in% selected_teams_years_analysis) 
+consolidated_selected_data <- rbind(selected_team_data_2020_after_26,selected_team_data_2019_after_26,selected_team_data_2018_after_26 ,selected_team_data_2017_after_26, selected_team_data_2016_after_26,selected_team_data_2021_after_26)
+consolidated_selected_data
+```
+
+
+```{r}
+date<-as.POSIXct(consolidated_selected_data$rangeDateTo,format = '%m-%d-%Y')
+year <- as.numeric(format(date,format = '%Y'))
+consolidated_selected_data <- cbind(consolidated_selected_data,year)
+consolidated_selected_data
+```
+
+```{r}
+ggplot(data = consolidated_selected_data, aes(x=year,y=netrtg, group=nameTeam, color=nameTeam)) +geom_line() +geom_point() +ylab('Net Rating')
+```
+
+```{r}
+kobe_bryant_friends <- c('Carmelo Anthony','LeBron James','Anthony Davis','Trae Young','Kevin Durant','Stephen Curry','Chris Paul')
+```
+
+```{r}
+team_data_2020_after_26 <- teams_players_stats(seasons = 2020, measures = "Advanced", types = "player", tables = "general", modes = "PerGame", date_from = "1-26-20", date_to = "2-16-20")$dataTable[[1]]
+team_data_2020_before_26 <- teams_players_stats(seasons = 2020, measures = "Advanced", types = "player", tables = "general", modes = "PerGame", date_from = "1-12-20", date_to = "1-25-20")$dataTable[[1]]
+team_data_2019_after_26 <- teams_players_stats(seasons = 2019, measures = "Advanced", types = "player", tables = "general", modes = "PerGame", date_from = "1-26-19", date_to = "2-16-19")$dataTable[[1]]
+team_data_2019_before_26 <- teams_players_stats(seasons = 2019, measures = "Advanced", types = "player", tables = "general", modes = "PerGame", date_from = "1-12-19", date_to = "1-25-19")$dataTable[[1]]
+selected_players_data_2020_after_26 <- subset(team_data_2020_after_26,namePlayer %in% kobe_bryant_friends)
+selected_players_data_2020_before_26 <- subset(team_data_2020_before_26,namePlayer %in% kobe_bryant_friends)
+selected_players_data_2019_after_26 <- subset(team_data_2019_after_26,namePlayer %in% kobe_bryant_friends)
+selected_players_data_2019_before_26 <- subset(team_data_2019_before_26,namePlayer %in% kobe_bryant_friends)
+consolidated_player_data <- rbind(selected_players_data_2020_after_26,selected_players_data_2020_before_26,selected_players_data_2019_after_26,selected_players_data_2019_before_26)
+date<-as.POSIXct(consolidated_player_data$rangeDateTo,format = '%m-%d-%Y')
+month <- as.numeric(format(date,format = '%m'))
+year <- as.numeric(format(date,format = '%Y'))
+status<-lapply(month, return_time)
+df<-data.frame(matrix(unlist(status), nrow=length(status), byrow=TRUE))
+colnames(df)<-c('status')
+consolidated_player_data <- cbind(consolidated_player_data,df)
+consolidated_player_data <- cbind(consolidated_player_data,year)
+consolidated_player_data
+```
+
+```{r}
+ggplot(consolidated_player_data, aes(x=namePlayer, y=netrtg, fill=status)) +geom_bar(stat='identity', position='dodge')+facet_wrap(~year,ncol=1)+coord_flip()
+```

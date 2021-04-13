@@ -1,0 +1,354 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+	    <meta charset="utf-8">
+	    <title>Scatterplot NBA</title>
+	    <script src="https://d3js.org/d3.v6.min.js"></script>
+	    <style>
+	      body, p, h1, h2, h3, label {
+	        font-family: sans-serif;
+	      }
+
+	      button {
+			  border: none;
+			  color: white;
+			  padding: 15px 32px;
+			  text-align: center;
+			  text-decoration: none;
+			  display: inline-block;
+			  font-size: 16px;
+			}
+	    </style>
+	</head>
+
+<body>
+	<div id = "dropdown">
+		<label for="teams">Displayed team:</label>
+
+		<select name="teams" id="teams">
+			<option value="ALL">Show All</option>
+			<option value="BOS" selected="">Boston Celtics</option>
+			<option value="BKN">Brooklyn Nets</option>
+			<option value="DAL">Dallas Mavericks</option>
+			<option value="DEN">Denver Nuggets</option>
+			<option value="HOU">Houston Rockets</option>
+			<option value="IND">Indiana Pacers</option>
+			<option value="LAC">LA Clippers</option>
+			<option value="LAL">Los Angeles Lakers</option>
+			<option value="MEM">Memphis Grizzlies</option>
+			<option value="MIA">Miami Heat</option>
+			<option value="MIL">Milwaukee Bucks</option>
+			<option value="NOP">New Orleans Pelicans</option>
+			<option value="OKC">Oklahoma City Thunder</option>
+			<option value="ORL">Orlando Magic</option>
+			<option value="PHI">Philadelphia 76ers</option>
+			<option value="PHX">Phoenix Suns</option>
+			<option value="POR">Portland Trail Blazers</option>
+			<option value="SAC">Sacramento Kings</option>
+			<option value="SAS">San Antonio Spurs</option>
+			<option value="TOR">Toronto Raptors</option>
+			<option value="UTA">Utah Jazz</option>
+			<option value="WAS">Washington Wizards</option>
+		</select>
+	</div>
+	<div>
+		<div id = "scatterplot" style = "display: inline-block; vertical-align:top;"></div>
+		<div id = "player_details" style = "display: inline-block; vertical-align:top;">
+			<p><b><span id="player_name"></br></span></b></p>
+			<p>Last selected player:<p>
+			<p>Offensive Rating: <span id="ortg"></span></p>
+			<p>Defensive Rating: <span id="drtg"></span></p>
+			<p>Net Rating: <span id="netrtg"></span></p>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+
+		// set the dimensions and margins of the graph
+		var margin = {top: 10, right: 10, bottom: 60, left: 60};
+		    width = 550 - margin.left - margin.right;
+		    height = 500 - margin.top - margin.bottom;
+		    // append the svg object to the body of the page
+		    var svg = d3.select("div#scatterplot")
+		      .append("svg")
+		        .attr("width", width + margin.left + margin.right)
+		        .attr("height", height + margin.top + margin.bottom)
+		      .append("g")
+		        .attr("transform",
+		              "translate(" + margin.left + "," + margin.top + ")")
+		      ;
+
+
+		var rowConverter = function (d) {
+		  return {
+			 name: d.name,
+	         team_abb: d.team_abb, 
+	         team_name: d.team_name,
+	         ortg_month_before: +d.ortg_month_before,
+	         drtg_month_before: +d.drtg_month_before,
+	         netrtg_month_before: +d.netrtg_month_before,
+	         ortg_bubble_seeding: +d.ortg_bubble_seeding,
+	         drtg_bubble_seeding: +d.drtg_bubble_seeding,
+	         netrtg_bubble_seeding: +d.netrtg_bubble_seeding,
+	         ortg_bubble_playoffs: +d.ortg_bubble_playoffs,
+	         drtg_bubble_playoffs: +d.drtg_bubble_playoffs,
+	         netrtg_bubble_playoffs: +d.netrtg_bubble_playoffs
+		    };
+		}  
+		// Add X axis
+		var xAxis = d3.scaleLinear()
+		  .domain([135, 65])
+		  .range([0, width]);
+		
+		svg.append("g")
+		  .attr("transform", "translate(0," + height + ")")
+		  .call(d3.axisBottom(xAxis));
+
+		svg.append("text")             
+     		.attr("transform",
+            "translate(" + (width/2) + " ," + 
+                           (height + margin.top + 30) + ")")
+	      .style("text-anchor", "middle")
+	      .text("Defensive Rating");
+
+		// Add Y axis
+		var yAxis = d3.scaleLinear()
+		  .domain([50, 150])
+		  .range([height, 0]);
+
+		svg.append("g")
+		  .call(d3.axisLeft(yAxis));
+
+		svg.append("text")
+		    .attr("transform", "rotate(-90)")
+		    .attr("y", 0 - margin.left)
+		    .attr("x",0 - (height / 2))
+		    .attr("dy", "1em")
+		    .style("text-anchor", "middle")
+		    .text("Offensive Rating");     
+
+
+
+
+		svg.append("text")
+		    .attr("transform", "rotate(-90)")
+		    .attr("y", 0 - margin.left)
+		    .attr("x",0 - (height / 2))
+		    .attr("dy", "1em")
+		    .style("text-anchor", "middle")
+		    .text("Offensive Rating");  
+
+
+		var display_choice = "month_before";
+		var selected_team = "BOS";
+		var currently_selected_player, hover_player;
+		//read in the CSV, append all dots, and initialize the first view -- BOS data
+		d3.csv("https://raw.githubusercontent.com/hernandz/nba_edav_2021/santos_questions/data/d3_data.csv", rowConverter)
+			.then(function(data) {
+			// stuff that requires the loaded data
+			// Add dots
+				svg.append("g")
+					.selectAll("dot")
+					.data(data)
+					.enter()
+					.append("circle")
+					.attr("cx", function (d) { 
+				    			return xAxis(d.drtg_month_before);  
+						})
+				    .attr("cy", function (d) { 
+				    			return yAxis(d.ortg_month_before); 
+						})
+				    .attr("r", 5)
+				    .style("fill", "#00bcd4")
+				    .style("opacity", function(d){
+							if(d.team_abb == selected_team){
+								return ".8"; 
+							} else {
+								return "0";
+							}
+						})
+				    .style("display", function(d){
+							if(d.team_abb == selected_team || selected_team == "ALL"){
+								return ""; 
+							} else {
+								return "none";
+							}
+						})
+				    .style("stroke-width", "2")
+
+					.on('mouseover', function () {
+						hover_player = d3.select(this);
+							d3.select(this)
+								.style("stroke", "rgb(22 55 113)");
+							update_stats(hover_player.data());
+					        //  svg.select(this).transition()
+					            //   .duration('50')
+					            //.attr('opacity', '.85');
+					          //Makes the new div appear on hover:
+					        //  div.transition()
+					         //      .duration(50)
+					          //     .style("opacity", 1);
+					     })
+					 .on("click", function () {
+				    	currently_selected_player = d3.select(this);
+				    	update_stats(currently_selected_player.data());
+
+				    	svg.selectAll("circle")
+							.style("stroke", "");
+
+						d3.select(this)
+							.style("stroke", "rgb(22 55 113)");
+						})
+					 .on('mouseout', function () {
+					 		if (currently_selected_player == undefined) {
+					 			d3.select("#player_name").text("");
+								d3.select("#ortg").text("");
+								d3.select("#drtg").text("");
+								d3.select("#netrtg").text("");
+								hover_player.style("stroke", "");
+							} else if (hover_player.data()[0] == currently_selected_player.data()[0]) {
+								update_stats(currently_selected_player.data());
+							} else {
+							    hover_player.style("stroke", "");
+								update_stats(currently_selected_player.data());
+
+							}	
+					     });
+			});
+
+
+		function move_dots(display_choice) { 
+			svg.selectAll("circle")
+		   		.transition()
+		   		.duration(1000)
+			 	.attr("cx", function (d) { 
+			 		switch(display_choice) {
+			 			case "month_before":
+			 				return xAxis(d.drtg_month_before);  
+			 			case "bubble_seeding":
+			 				return xAxis(d.drtg_bubble_seeding); 
+			 			case "bubble_playoffs":
+			 				if(isNaN(d.drtg_bubble_playoffs)){
+			 					return width/2; 
+			 				} else {
+			 					return xAxis(d.drtg_bubble_playoffs); 
+			 				} 
+			 		}	
+			 	})
+				.attr("cy", function (d) { 
+			 		switch(display_choice) {
+			 			case "month_before":
+			 				return yAxis(d.ortg_month_before);  
+			 			case "bubble_seeding":
+			 				return yAxis(d.ortg_bubble_seeding); 
+			 			case "bubble_playoffs":
+			 				if(isNaN(d.ortg_bubble_playoffs)){
+			 					return -100; 
+			 				} else {
+			 					return yAxis(d.ortg_bubble_playoffs);
+			 				} 
+			 		}
+				})
+				.style("fill", function (d) {
+			 		switch(display_choice) {
+			 			case "month_before":
+			 				return "#00bcd4";  
+			 			case "bubble_seeding":
+			 				return "#ff9800"; 
+			 			case "bubble_playoffs":
+			 				return "#e91e63"; 
+			 		}	
+				})
+
+			update_stats(currently_selected_player.data());						
+		}
+
+
+		function update_dots(selected_team) {
+			svg.selectAll("circle")
+				.style("display", function(d){
+						if(d.team_abb == selected_team || selected_team == "ALL"){
+							return ""; 
+						}
+					})
+		   		.transition()
+		   		.duration(750)
+			    .style("opacity", function(d){
+						if(d.team_abb == selected_team || selected_team == "ALL"){
+							return ".8"; 
+						} else {
+							return "0";
+						}
+					})
+			    .on("end", function(){
+			    	svg.selectAll("circle")
+			    	   .style("display", function(d){
+						if(d.team_abb != selected_team && selected_team != "ALL"){
+							return "none";
+						}
+					    })
+			    })
+		}
+
+		function update_stats(selected_player) {
+			var selected_player_object = {"name": selected_player[0]["name"]}
+
+			switch(display_choice) {
+		 			case "month_before":
+		 				selected_player_object.ortg = selected_player[0].ortg_month_before;
+		 				selected_player_object.drtg = selected_player[0].drtg_month_before;  
+		 				selected_player_object.netrtg = selected_player[0].netrtg_month_before; 
+		 				break; 
+
+		 			case "bubble_seeding":
+		 				selected_player_object.ortg = selected_player[0].ortg_bubble_seeding;
+		 				selected_player_object.drtg = selected_player[0].drtg_bubble_seeding;  
+		 				selected_player_object.netrtg = selected_player[0].netrtg_bubble_seeding;
+		 				break;   			 			
+
+		 			case "bubble_playoffs":
+		 				selected_player_object.ortg = selected_player[0].ortg_bubble_playoffs;
+		 				selected_player_object.drtg = selected_player[0].drtg_bubble_playoffs;  
+		 				selected_player_object.netrtg = selected_player[0].netrtg_bubble_playoffs;  
+		 				break; 
+		 	}
+					  //PLAYER PROFILE	
+			d3.select("#player_name").text(selected_player_object["name"]);
+			d3.select("#ortg").text(selected_player_object["ortg"]);
+			d3.select("#drtg").text(selected_player_object["drtg"]);
+			d3.select("#netrtg").text(selected_player_object["netrtg"]);
+
+		}
+		
+	</script>
+
+
+	<button class = "time_period", id = "month_before", style = "background-color: #00bcd4"><p>Month before NBA shutdown</p></button>
+	<button class = "time_period", id = "bubble_seeding", style = "background-color: #ff9800"><p>Bubble seeding games</p></button>
+	<button class = "time_period", id = "bubble_playoffs", style = "background-color: #e91e63"><p>Bubble playoffs</p></button>
+
+	<script>
+		//change between pre and post covid
+	    d3.selectAll("button.time_period")
+	        .on("click", function () {
+		    	display_choice = d3.select(this).attr("id");
+		    	move_dots(display_choice);
+
+	    });
+
+
+	    //dropdown behavior
+		d3.selectAll("select")
+			.on("change", function() {
+				selected_team = d3.select(this).node().value;
+				update_dots(selected_team);
+			});
+
+    </script>
+
+	</body>
+
+</html>

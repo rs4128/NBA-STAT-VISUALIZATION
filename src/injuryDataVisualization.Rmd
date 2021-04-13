@@ -1,0 +1,304 @@
+---
+title: "Injury Data Visualization"
+author: "Rahul"
+date: "4/8/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+library(nbastatR)
+library(future)
+library(dplyr)
+library(rvest)
+library(robotstxt)
+library(htmltools)
+library(xml2)
+library(mgsub)
+library(tidytext)
+library(wordcloud)
+library(tidyr)
+library(vcd)
+library(grid)
+library(tidyverse)
+library(ggrepel)
+library(treemap)
+library(RColorBrewer)
+plan(multiprocess)
+```
+
+
+
+
+```{r}
+count <- c(1:1291)
+pageNumbers <- (count-1)*25
+commonUrl <- 'http://www.prosportstransactions.com/basketball/Search/SearchResults.php?Player=&Team=&BeginDate=&EndDate=&ILChkBx=yes&Submit=Search&start='
+allYearsdf <- data.frame(Date=character(),Team=character(), Acquired=character(), Relinquished=character(), Notes=character()) 
+```
+
+
+```{r}
+scrapPositionalData<-function (url){
+  page <- tryCatch({ 
+        read_html(url)
+    },
+    error = function(cond) {
+      return (c(NA,NA))
+    },
+    warning=function(cond) {
+        message(paste("URL caused a warning:", url))
+        message(cond)
+        return(c(NA,NA))
+    },
+    finally={
+    })
+  
+  if(is.na(page))
+   { return (c(NA,NA))}
+  else
+  {
+  index <- 4
+  count <- 1
+  stringData <- page %>%
+              html_node('div#meta')%>%
+              html_nodes('p')
+  for(i in stringData)
+  {
+    str<- i %>%
+      html_text()
+    if(grepl('Position',str,fixed=TRUE)==TRUE)
+      {index <- count}
+    count<-count+1
+  }
+
+  stringData <- stringData [index]
+  personalData<- stringData %>%
+            html_text()
+  personalData <- mgsub(personalData,c('\n',' '),c('',''))
+  personalData<- strsplit(personalData,'▪')
+  shootingPosition <-strsplit(personalData[[1]][1],':')[[1]][2]
+  shootingHand <- strsplit(personalData[[1]][2],':')[[1]][2]
+  positionalData <- c(shootingPosition,shootingHand)
+  return(positionalData)
+  }
+}
+```
+
+
+```{r}
+categoryDefine <- function(notes)
+{
+  category = ''
+  notesList<- str_split(notes,' ')
+  for(i in injuriesCategories)
+  {
+    if(i %in% notesList[[1]])
+      category<-i
+    
+  }
+  return (category)
+}
+
+```
+
+
+
+
+```{r}
+for (i in pageNumbers)
+{
+url <- paste(c(commonUrl,i),collapse='')
+page <- read_html(url)
+print(url)
+content <- page %>%
+  html_node('div.container') %>%
+  html_node('table.datatable') %>%
+  html_table()
+headings <- head(content,1)
+df<-content
+colnames(df) <-c(headings)
+df <- df[-1,]
+x<-'•'
+df$Relinquished<-sub(x,'',df$Relinquished)
+df$Acquired<-sub(x,'',df$Acquired)
+allYearsdf<-rbind(allYearsdf,df)
+}
+
+```
+
+```{r}
+write.csv(allYearsdf,'basketballScrapingOutput.csv')
+```
+
+```{r}
+newDf = read.csv('basketballScrapingOutput.csv')
+newDf$Relinquished <-str_trim(newDf$Relinquished)
+newDf<-newDf[!newDf$Relinquished == '',]
+newDf
+```
+
+```{r}
+playerData<-dictionary_bref_players()
+injuredPlayerData<-merge(newDf,playerData,by.x='Relinquished',by.y='namePlayerBREF')
+date<-as.POSIXct(injuredPlayerData$Date,format = '%Y-%m-%d')
+year <- as.numeric(format(date,format = '%Y'))
+injuredPlayerData<-cbind(injuredPlayerData,year)
+injuredPlayerData
+```
+```{r}
+yearsList <- sort(unique(injuredPlayerData$year),decreasing = TRUE)
+yearsList <- yearsList[1:8]
+```
+
+```{r}
+topPlayerInjuryData <-subset(injuredPlayerData,year %in% yearsList )
+injuredPlayerUrls <- topPlayerInjuryData['urlPlayerBioBREF']
+positionalData<-lapply(injuredPlayerUrls[[1]], scrapPositionalData)
+```
+
+```{r}
+df<-data.frame(matrix(unlist(positionalData), nrow=length(positionalData), byrow=TRUE))
+colnames(df)<-c('position1','hand')
+mergedPlayerInjuryData<-cbind(topPlayerInjuryData,df)
+mergedPlayerInjuryData <- separate_rows(mergedPlayerInjuryData,position1,sep="and")
+mergedPlayerInjuryData <- separate_rows(mergedPlayerInjuryData,position1,sep=",")
+mergedPlayerInjuryData[!mergedPlayerInjuryData$position1 == '',]
+mergedPlayerInjuryData
+```
+
+
+```{r}
+injuryDataNba <- bref_injuries()
+injuryClasses <- c(unique(injuryDataNba$typeInjury))
+injuryClasses
+```
+
+```{r}
+unnest_injuries <- mergedPlayerInjuryData %>%
+  select(year, Notes) %>%
+  unnest_tokens(word, Notes, token = "ngrams", n = 1) %>%
+  count(word) 
+unnest_injuries <- subset(unnest_injuries,word %in% tolower(injuryClasses))
+injuriesCategories <- c(unnest_injuries$word)
+
+```
+
+```{r}
+preprocessedInjuryData <- mergedPlayerInjuryData %>% filter(str_detect(tolower(Notes), paste(injuriesCategories, collapse = "|")))
+preprocessedInjuryData
+```
+```{r}
+notesList <- preprocessedInjuryData$Notes
+injuryCategoryPlayers<-lapply(notesList, categoryDefine)
+df<-data.frame(matrix(unlist(injuryCategoryPlayers), nrow=length(injuryCategoryPlayers), byrow=TRUE))
+colnames(df)<-c('typeInjury')
+preprocessedInjuryData<-cbind(preprocessedInjuryData,df)
+```
+
+```{r}
+new_DF <- preprocessedInjuryData[rowSums(is.na(preprocessedInjuryData)) > 0,]
+ggplot(new_DF,aes(x=key,y=fct_rev(typeInjury),fill=missing))+geom_tile(color='white')+ggtitle('NAs for dataset')+coord_flip()
+```
+
+```{r}
+tidyData <- preprocessedInjuryData %>% rownames_to_column('id') %>% gather(key,value,-Re)%>%
+  mutate(missing=ifelse(is.na(value),'yes','no'))
+ggplot(tidyData,aes(x=key,y=fct_rev(typeInjury),fill=missing))+geom_tile(color='white')+ggtitle('NAs for dataset')+coord_flip()
+#tidyData
+```
+
+
+
+
+```{r}
+preprocessedInjuryData$position1[preprocessedInjuryData$position1 == 'Guard'] <- 'PointGuard'
+preprocessedInjuryData$position1[preprocessedInjuryData$position1 == 'Forward'] <- 'SmallForward'
+preprocessedInjuryData<-preprocessedInjuryData[!preprocessedInjuryData$Relinquished == '',]
+preprocessedInjuryData<-preprocessedInjuryData[!preprocessedInjuryData$position1 == '',]
+preprocessedInjuryData<-preprocessedInjuryData[!rowSums(is.na(preprocessedInjuryData)) == ncol(preprocessedInjuryData),]
+```
+
+
+```{r}
+
+new_DF <- preprocessedInjuryData[rowSums(is.na(preprocessedInjuryData)) > 0,]
+#ggplot(new_DF,aes(x=key,y=fct_rev(Relinquished),fill=missing))+geom_tile(color='white')+ggtitle('NAs for dataset')+coord_flip()
+tidyData <- new_DF %>% rownames_to_column('id') %>% gather(key,value,-Relinquished)%>%
+  mutate(missing=ifelse(is.na(value),'yes','no'))
+ggplot(tidyData,aes(x=key,y=fct_rev(Relinquished),fill=missing))+geom_tile(color='white')+ggtitle('NAs for dataset')+coord_flip()
+#tidyData
+```
+
+```{r}
+injuryData_2017 <- subset(preprocessedInjuryData,year == 2017 )
+new<-injuryData_2017 %>% group_by(typeInjury) %>% summarise(n=n()) %>% top_n(7)
+temp<-new['typeInjury']
+tempList <- c(temp$typeInjury)
+injuryData_2017 <-subset(injuryData_2017,typeInjury %in% tempList )
+injuryData_2017
+```
+
+```{r}
+vcd::mosaic(typeInjury ~ position1,spacing = vcd::spacing_equal(sp = unit(0, "lines")),labeling = vcd::labeling_border(rot_labels = c(90, -90, 0, 0),gp_labels = gpar(fontsize = 6),gp_varnames = gpar(fontsize = 14, fontface = 1),pos_labels = "center",just_labels = "center"),injuryData_2017,highlighting_fill = brewer.pal(n = 8, 'Blues'))
+```
+```{r}
+testval <- chisq.test(table(injuryData_2017$typeInjury, injuryData_2017$position1))
+testval$observed
+```
+
+```{r}
+testval$expected
+```
+
+
+
+```{r}
+ggplot(injuryData_2017)+
+  geom_bar(aes(x = typeInjury,),)+
+  coord_flip() +
+  labs(x = "Injury",y="Number of players injured",title = "Injury by position")+facet_wrap(~position1,ncol=3)+ggtitle('Injury By Kind Faceted Over Position')#+
+  #scale_fill_brewer(palette = brewer.pal(n = 7, 'Blues'))
+```
+
+```{r}
+linePlotDataFrame<-preprocessedInjuryData %>% group_by(position1,year) %>% summarize(n=n())
+linePlotDataFrame %>% ggplot( aes(x=year,y=n, group=position1, color=position1)) +geom_line() +geom_point()+ggtitle('Number of Injuries over the years by playing position')
+```
+
+```{r}
+new<-preprocessedInjuryData %>% group_by(typeInjury) %>% summarise(n=n()) %>% top_n(7)
+temp<-new['typeInjury']
+tempList <- c(temp$typeInjury)
+treeMapDataFrame <-subset(preprocessedInjuryData,typeInjury %in% tempList )
+treeMapDataFrame <- treeMapDataFrame %>% group_by(position1,year,typeInjury) %>% summarize(n=n())
+treeMapDataFrame
+```
+```{r}
+
+treemap(treeMapDataFrame,index = c('year','typeInjury'),vSize = 'n',type = 'index',title="Treemap for Injury Kinds over the years")
+```
+

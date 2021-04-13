@@ -1,0 +1,168 @@
+---
+title: "Data Processing for Injury viz"
+author: "Rahul"
+date: "4/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+```{r}
+scrapPositionalData<-function (url){
+  page <- tryCatch({ 
+        read_html(url)
+    },
+    error = function(cond) {
+      return (c(NA,NA))
+    },
+    warning=function(cond) {
+        message(paste("URL caused a warning:", url))
+        message(cond)
+        return(c(NA,NA))
+    },
+    finally={
+    })
+  
+  if(is.na(page))
+   { return (c(NA,NA))}
+  else
+  {
+  index <- 4
+  count <- 1
+  stringData <- page %>%
+              html_node('div#meta')%>%
+              html_nodes('p')
+  for(i in stringData)
+  {
+    str<- i %>%
+      html_text()
+    if(grepl('Position',str,fixed=TRUE)==TRUE)
+      {index <- count}
+    count<-count+1
+  }
+
+  stringData <- stringData [index]
+  personalData<- stringData %>%
+            html_text()
+  personalData <- mgsub(personalData,c('\n',' '),c('',''))
+  personalData<- strsplit(personalData,'▪')
+  shootingPosition <-strsplit(personalData[[1]][1],':')[[1]][2]
+  shootingHand <- strsplit(personalData[[1]][2],':')[[1]][2]
+  positionalData <- c(shootingPosition,shootingHand)
+  return(positionalData)
+  }
+}
+```
+
+
+```{r}
+categoryDefine <- function(notes)
+{
+  category = ''
+  notesList<- str_split(notes,' ')
+  for(i in injuriesCategories)
+  {
+    if(i %in% notesList[[1]])
+      category<-i
+    
+  }
+  return (category)
+}
+
+```
+
+
+```{r}
+newDf = read.csv('data/basketballScrapingOutput.csv')
+newDf$Relinquished <-str_trim(newDf$Relinquished)
+newDf<-newDf[!newDf$Relinquished == '',]
+```
+
+```{r}
+playerData<-dictionary_bref_players()
+injuredPlayerData<-merge(newDf,playerData,by.x='Relinquished',by.y='namePlayerBREF')
+date<-as.POSIXct(injuredPlayerData$Date,format = '%Y-%m-%d')
+year <- as.numeric(format(date,format = '%Y'))
+injuredPlayerData<-cbind(injuredPlayerData,year)
+```
+
+```{r}
+yearsList <- sort(unique(injuredPlayerData$year),decreasing = TRUE)
+yearsList <- yearsList[1:8]
+```
+
+```{r}
+topPlayerInjuryData <-subset(injuredPlayerData,year %in% yearsList )
+injuredPlayerUrls <- topPlayerInjuryData['urlPlayerBioBREF']
+positionalData<-lapply(injuredPlayerUrls[[1]], scrapPositionalData)
+df<-data.frame(matrix(unlist(positionalData), nrow=length(positionalData), byrow=TRUE))
+colnames(df)<-c('position1','hand')
+mergedPlayerInjuryData<-cbind(topPlayerInjuryData,df)
+mergedPlayerInjuryData <- separate_rows(mergedPlayerInjuryData,position1,sep="and")
+mergedPlayerInjuryData <- separate_rows(mergedPlayerInjuryData,position1,sep=",")
+mergedPlayerInjuryData[!mergedPlayerInjuryData$position1 == '',]
+mergedPlayerInjuryData
+```
+```{r}
+write.csv(mergedPlayerInjuryData,'data/mergedInjuryInjuryData.csv')
+injuryDataNba <- bref_injuries()
+injuryClasses <- c(unique(injuryDataNba$typeInjury))
+```
+
+```{r}
+unnest_injuries <- mergedPlayerInjuryData %>%
+  select(year, Notes) %>%
+  unnest_tokens(word, Notes, token = "ngrams", n = 1) %>%
+  count(word) 
+unnest_injuries <- subset(unnest_injuries,word %in% tolower(injuryClasses))
+injuriesCategories <- c(unnest_injuries$word)
+
+```
+
+```{r}
+preprocessedInjuryData <- mergedPlayerInjuryData %>% filter(str_detect(tolower(Notes), paste(injuriesCategories, collapse = "|")))
+```
+
+```{r}
+notesList <- preprocessedInjuryData$Notes
+injuryCategoryPlayers<-lapply(notesList, categoryDefine)
+df<-data.frame(matrix(unlist(injuryCategoryPlayers), nrow=length(injuryCategoryPlayers), byrow=TRUE))
+colnames(df)<-c('typeInjury')
+preprocessedInjuryData<-cbind(preprocessedInjuryData,df)
+```
+
+```{r}
+preprocessedInjuryData$position1[preprocessedInjuryData$position1 == 'Guard'] <- 'PointGuard'
+preprocessedInjuryData$position1[preprocessedInjuryData$position1 == 'Forward'] <- 'SmallForward'
+preprocessedInjuryData<-preprocessedInjuryData[!preprocessedInjuryData$Relinquished == '',]
+preprocessedInjuryData<-preprocessedInjuryData[!preprocessedInjuryData$position1 == '',]
+preprocessedInjuryData<-preprocessedInjuryData[!rowSums(is.na(preprocessedInjuryData)) == ncol(preprocessedInjuryData),]
+```
+
+```{r}
+write.csv(preprocessedInjuryData,'data/preprocessedInjuryData.csv')
+```
+

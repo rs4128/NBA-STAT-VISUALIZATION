@@ -1,0 +1,10 @@
+book_filename: "finalproj"
+output_dir: docs
+delete_merged_file: true
+edit: https://github.com/hernandz/nba_edav_2021/edit/main/%s
+view: https://github.com/hernandz/nba_edav_2021/blob/main/%s
+language:
+  ui:
+    chapter_name: "Chapter "
+    
+before_chapter_script: "_common.R"
